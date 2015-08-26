@@ -2,6 +2,9 @@
 
 use Pimple\Container;
 
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+
 use Symfony\Component\Yaml\Yaml;
 
 use Sweepo\Service\Twitter;
@@ -49,7 +52,8 @@ class Sweepo
                 $this->parameters['twitter.owner_screen_name'],
                 $this->config['twitter']['storage_path'],
                 isset($this->parameters['twitter.limit']) ? $this->parameters['twitter.limit'] : 1000,
-                isset($this->parameters['twitter.list']) ? $this->parameters['twitter.list'] : null
+                isset($this->parameters['twitter.list']) ? $this->parameters['twitter.list'] : null,
+                $this->container['logger']
             );
         };
 
@@ -61,7 +65,8 @@ class Sweepo
                 $this->parameters['mailer.password'],
                 $this->parameters['mailer.sender'],
                 $this->parameters['twitter.recipients'],
-                $this->parameters['mailer.sender_name']
+                $this->parameters['mailer.sender_name'],
+                $this->container['logger']
             );
         };
 
@@ -74,6 +79,13 @@ class Sweepo
 
         $this->container['mail_generator'] = function() {
             return new MailGenerator($this->container['twig']);
+        };
+
+        $this->container['logger'] = function() {
+            $log = new Logger('app');
+            $log->pushHandler(new StreamHandler(__DIR__.'/logs/prod/app.log', Logger::INFO));
+
+            return $log;
         };
     }
 

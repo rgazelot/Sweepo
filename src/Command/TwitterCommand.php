@@ -24,6 +24,7 @@ class TwitterCommand extends SweepoAwareCommand
         $tweets = $container['twitter']->getList($input->getOption('list'));
 
         if (empty($tweets)) {
+            $container['logger']->info('There are no tweets to send');
             $output->writeln('<info>There are no tweets to send</info>');
 
             return;
