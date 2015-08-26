@@ -1,0 +1,15 @@
+parameters:
+  mailer.host: ~
+  mailer.port: ~
+  mailer.user: ~
+  mailer.password: ~
+  mailer.sender: ~
+  mailer.sender_name: ~
+
+  twitter.consumer_key: ~
+  twitter.consumer_secret: ~
+  twitter.oauth_token: ~
+  twitter.oauth_token_secret: ~
+  twitter.recipients: {}
+  twitter.list: ~
+  twitter.owner_screen_name: ~

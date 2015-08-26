@@ -1,0 +1,5 @@
+<ul>
+    {% for tweet in tweets %}
+        <li>{{ tweet.user.name }} @{{ tweet.user.screen_name }} : {{ tweet.text }} https://twitter.com/{{ tweet.user.screen_name }}/status/{{ tweet.id }}</li>
+    {% endfor %}
+</ul>
