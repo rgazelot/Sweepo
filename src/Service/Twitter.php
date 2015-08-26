@@ -37,22 +37,27 @@ class Twitter
 
         // If a previous since_id was stored, use it.
         if (file_exists($this->storagePath.'/since.txt')) {
-            $parameters['since_id'] = file_get_contents($this->storagePath.'/since.txt');
+            $parameters['since_id'] = (int) file_get_contents($this->storagePath.'/since.txt');
         }
 
-        $this->logger and $this->logger->info(sprintf("Fetch the tweets of the list %s", $parameters['slug']), [
-            'slug' => $parameters['slug'],
-            'owner_screen_name' => $parameters['owner_screen_name'],
-            'since_id' => isset($parameters['since_id']) ? $parameters['since_id'] : null,
-        ]);
-
+        $this->logRequest($parameters);
         $results = $this->twitter->get("lists/statuses", $parameters);
+        $this->checkErrors($results);
 
-        if (!is_array($results) && $results->errors) {
-            $e = new InvalidArgumentException(sprintf('Twitter error - %s', $message = !isset($results->errors[0]->message) ? '' : $results->errors[0]->message));
-            $this->logger and $this->logger->critical($e->getMessage());
+        // Pagniate if needed
+        while (!empty($results) && isset($parameters['since_id']) && end($results)->id > $parameters['since_id']) {
+            $parameters['max_id'] = end($results)->id - 1;
 
-            throw $e;
+            $this->logRequest($parameters);
+            $newResults = $this->twitter->get("lists/statuses", $parameters);
+            $this->checkErrors($newResults);
+            $this->logFetch(count($newResults));
+
+            if (empty($newResults)) {
+                break;
+            }
+
+            $results = array_merge($results, $newResults);
         }
 
         // If there are results, store the last id to paginate.
@@ -60,8 +65,33 @@ class Twitter
             file_put_contents($this->storagePath.'/since.txt', $results[0]->id);
         }
 
-        $this->logger and $this->logger->info(sprintf("%d tweets fetched", count($results)));
+        $this->logFetch(count($results));
 
         return $results;
+    }
+
+    private function logRequest(array $parameters)
+    {
+        $this->logger and $this->logger->info(sprintf("Fetch the tweets of the list %s", $parameters['slug']), [
+            'slug' => $parameters['slug'],
+            'owner_screen_name' => $parameters['owner_screen_name'],
+            'since_id' => isset($parameters['since_id']) ? $parameters['since_id'] : null,
+            'max_id' => isset($parameters['max_id']) ? $parameters['max_id'] : null,
+        ]);
+    }
+
+    private function logFetch($count)
+    {
+        $this->logger and $this->logger->info(sprintf("%d tweets fetched", $count));
+    }
+
+    private function checkErrors($results)
+    {
+        if (!is_array($results) && $results->errors) {
+            $e = new InvalidArgumentException(sprintf('Twitter error - %s', $message = !isset($results->errors[0]->message) ? '' : $results->errors[0]->message));
+            $this->logger and $this->logger->critical($e->getMessage());
+
+            throw $e;
+        }
     }
 }
